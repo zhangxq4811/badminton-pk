@@ -1,0 +1,27 @@
+server:
+  port: 8090
+  servlet:
+    context-path: /
+
+# freemarker
+spring:
+  freemarker:
+    # 是否开启缓存 生产环境设置true
+    cache: true
+    charset: UTF-8
+    content-type: text/html
+    suffix: .html
+    template-loader-path: classpath:/templates
+    settings:
+      # 解决页面中取空值出现的异常
+      classic_compatible: true
+      template_update_delay: 0
+
+# 自定义权限验证
+self:
+  permissions:
+    verify:
+      list:
+        - {question: "本群的群主是谁？", answer: "班长"}
+        - {question: "本群的委员是谁？", answer: "小明"}
+        - {question: "本网站的开发者是谁？", answer: "小张"}

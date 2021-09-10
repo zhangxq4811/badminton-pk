@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<#assign ctx=springMacroRequestContext.contextPath />
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>羽毛球随机分组</title>
+  <link rel="stylesheet" href="${ctx}/layui/css/layui.css">
+</head>
+
+<body>
+<div class="layui-container">
+	<div>
+		<fieldset class="layui-elem-field layui-field-title">
+			<legend>参赛选手</legend>
+		</fieldset>
+		<form class="layui-form" action="">
+			<div class="layui-form-item">
+				<label class="layui-form-label">男选手：</label>
+				<div class="layui-input-block" id="player_male_checkbox">
+					<#list malePlayers as malePlayer>
+						<input type="checkbox" name="playerCheckbox" lay-skin="primary" value="${malePlayer.name}" title="${malePlayer.name}" checked>
+					</#list>
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<label class="layui-form-label">女选手：</label>
+				<div class="layui-input-block" id="player_female_checkbox">
+					<#list femalePlayers as femalePlayer>
+						<input type="checkbox" name="playerCheckbox" lay-skin="primary" value="${femalePlayer.name}" title="${femalePlayer.name}" checked>
+					</#list>
+				</div>
+			</div>
+
+			<div class="layui-form-item">
+				<div class="layui-input-block">
+					<button type="button" class="layui-btn layui-btn-primary" lay-submit="" lay-filter="editPlayerBtn">编辑选手信息</button>
+				</div>
+			</div>
+		</form>
+	</div>
+
+	<div>
+		<fieldset class="layui-elem-field layui-field-title">
+			<legend>分组规则</legend>
+		</fieldset>
+		<form class="layui-form layui-col-space5">
+			<div class="layui-form-item">
+				<div class="layui-inline">
+					<label class="layui-form-label">比赛日期</label>
+					<div class="layui-input-inline">
+						<input type="text" name="playDate" id="playDate" lay-verify="date" autocomplete="off" class="layui-input">
+					</div>
+				</div>
+				<div class="layui-inline">
+					<label class="layui-form-label">区分性别</label>
+					<div class="layui-input-inline">
+						<select name="groupingBySex">
+							<option value="true">是</option>
+							<option value="false">否</option>
+						</select>
+					</div>
+					<div class="layui-form-mid layui-word-aux">不区分性别，则随机匹配，允许出现女双 VS 男双</div>
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-inline">
+					<label class="layui-form-label">分成几组</label>
+					<div class="layui-input-inline">
+						<input type="text" name="groupingCount" value="2" lay-verify="required" autocomplete="off" class="layui-input">
+					</div>
+				</div>
+				<div class="layui-inline">
+					<label class="layui-form-label">比赛场数</label>
+					<div class="layui-input-inline">
+						<input type="text" name="games" placeholder="请输入比赛场数" lay-verify="required" autocomplete="off" class="layui-input">
+					</div>
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-input-block">
+					<button type="button" class="layui-btn layui-btn-primary" lay-submit="" lay-filter="startGroupingBtn">开始分组</button>
+					<button type="button" class="layui-btn layui-btn-primary" lay-submit="" lay-filter="exportBtn">下载结果</button>
+				</div>
+			</div>
+		</form>
+	</div>
+
+	<div>
+		<fieldset class="layui-elem-field layui-field-title">
+			<legend>分组结果</legend>
+		</fieldset>
+		<div class="layui-card-body" id="pdf_html" style="width: 100%;margin: auto;">
+			<table class="layui-hide" id="groupingResultTableId" lay-filter="groupingResultFilter"></table>
+		</div>
+	</div>
+</div>
+
+
+<!-- 引入 layui.js 的 <script> 标签最好放置在 html 末尾 -->
+<script src="${ctx}/layui/layui.js"></script>
+<script src="${ctx}/layui/random.js"></script>
+<script>
+
+	var TR_PLACEHODLCE = '<tr>' +
+			'<td colspan=5 align="left" class="layui-table-col-special"><div class="layui-table-cell laytable-cell-group">#_XXX_#</div></td>' +
+			'</tr>';
+
+	layui.use(function(){
+		var $ = layui.jquery,
+			laydate = layui.laydate,
+			form = layui.form,
+			table = layui.table,
+			layer = layui.layer;
+
+		// 编辑选手信息
+		form.on('submit(editPlayerBtn)', function (data) {
+			var permissionsQuestion;
+			$.ajax({
+				type: 'get',
+				async: false,
+				url: '${ctx}/queryQuestion',
+				success: function(res) {permissionsQuestion = res.data}
+			});
+			var input_html = '<input type="text" id="authenticationInput" placeholder='+permissionsQuestion+' class="layui-input">';
+			layer.open({
+				title: '权限验证'
+				,content: input_html
+				,yes: function(index){
+					var permissionsCheck = false;
+					$.ajax({
+						type: 'post',
+						async: false,
+						url: '${ctx}/checkPermissionsAnswer',
+						data: {'question':permissionsQuestion,'answer':$('#authenticationInput').val()},
+						success: function(res) {permissionsCheck = res.data}
+					});
+					if (permissionsCheck) {
+						layer.close(index);
+						// 身份验证通过
+						layer.open({
+							type : 2,
+							title: false,
+							area: ['95%', '60%'],
+							closeBtn: 0, //不显示关闭按钮
+							content : '${ctx}/player-list',
+							btn: ['关闭'],
+							yes: function(index){
+								// 刷新页面
+								window.location.reload();
+								layer.close(index);
+							}
+						});
+					} else {
+						layer.close(index);
+						layer.msg("权限验证失败");
+					}
+				}
+			});
+			return false;
+		});
+
+		// 开始分组
+		form.on('submit(startGroupingBtn)', function (data) {
+			var selectPlayers = [];
+			$("input:checkbox[name='playerCheckbox']:checked").each(function() {
+				selectPlayers.push($(this).val());
+			});
+			data.field.players = selectPlayers;
+			var requestBody = JSON.stringify(data.field);
+			//设置遮罩层
+			var loading = layer.msg('分组中', {icon: 16, ime:0});
+			$.ajax({
+				type: 'post',
+				url: '${ctx}/grouping',
+				data: requestBody,
+				dataType: 'json',
+				// 指定这个协议很重要
+				contentType: "application/json;charset=UTF-8",
+				success: function(res) {
+					layer.close(loading);
+					if (res.status == 200) {
+						// 渲染分组结果表格
+						table.render({
+							elem: '#groupingResultTableId',
+							cols: [
+								[
+									{ colspan: 5, title: '小组赛计分表（'+data.field.playDate+'）', align: 'center'}
+								],
+								[
+									{type: 'numbers', title: '序号', align: 'center'},
+									{field: 'pkMode',  title: '队形', align: 'center'},
+									{title: '队伍一', align: 'center'
+										,templet:function(row){
+											return row.firstTeamPlayer1 + ' + ' + row.firstTeamPlayer2
+										}
+									},
+									{title: '队伍二', align: 'center'
+										,templet:function(row){
+											return row.secondTeamPlayer1 + ' + ' + row.secondTeamPlayer2
+										}
+									},
+									{field: 'judge', title: '裁判', align: 'center'}
+								]
+							],
+							limit: res.data.games.length,
+							data: res.data.games,
+							done: function() {
+								var bottomContext = "";
+								for (var i in res.data.teams) {
+									var players = "";
+									var team = res.data.teams[i];
+									var teamName = team.teamName;
+									for (var j in team.players) {
+										players += team.players[j].name + "&nbsp;&nbsp;&nbsp;&nbsp;";
+									}
+									var row = teamName + ":&nbsp;&nbsp" + players;
+									bottomContext += TR_PLACEHODLCE.replace("#_XXX_#", row);
+								}
+								$('.layui-table-body').each(function(){
+									var $lastTr = $(this).find("tbody").last();
+									$lastTr.append(bottomContext);
+								});
+							}
+						});
+					} else {
+						//错误提示框
+						layer.msg(res.message);
+					}
+				}
+			});
+			return false;
+		});
+
+		// 导出结果
+		form.on('submit(exportBtn)', function (fromData) {
+			// var link = document.createElement('a');
+			// link.style.display = 'none';
+			// link.href = '${ctx}/exportResult';
+			// var fileName = '小分队分组赛-' + fromData.field.playDate.replaceAll('-','') + '.pdf';
+			// link.setAttribute('download',fileName);
+			// document.body.appendChild(link);
+			// link.click();
+			// document.body.removeChild(link);
+			window.open('${ctx}/exportResult');
+			return false;
+		});
+
+		laydate.render({
+			elem: "#playDate",
+			value: new Date()
+		});
+	});
+
+</script>
+
+</body>
+
+</html>
