@@ -4,15 +4,16 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.zxq.constant.ExportTypeEnum;
 import com.zxq.constant.PkModeEnum;
 import com.zxq.constant.SexEnum;
 import com.zxq.model.bo.*;
 import com.zxq.model.exception.PlayerException;
 import com.zxq.utils.ExcelUtil;
-import freemarker.template.Configuration;
 import freemarker.template.Template;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer;
 
@@ -29,7 +30,8 @@ public class GroupingService {
     @Autowired
     private PlayerService playerService;
 
-    private Configuration configuration;
+    @Value("${self.export.type}")
+    private String exportType;
 
     /**
      * 上一次分组结果
@@ -335,8 +337,13 @@ public class GroupingService {
             Writer out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
             template.process(groupingResult, out);
             out.close();
-            // 将临时excel文件转成pdf写向客户端
-            ExcelUtil.excel2Pdf(outFile, response.getOutputStream());
+            if (ExportTypeEnum.isExcelType(exportType)) {
+                // 写excel文件
+                ExcelUtil.writeExcel(outFile, response);
+            } else {
+                // 将临时excel文件转成pdf写向客户端
+                ExcelUtil.excel2Pdf(outFile, response.getOutputStream());
+            }
             // 删除临时文件
             outFile.delete();
         } catch (Exception e) {

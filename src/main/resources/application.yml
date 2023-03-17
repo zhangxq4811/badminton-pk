@@ -19,6 +19,9 @@ spring:
 
 # 自定义权限验证
 self:
+  export:
+    # 导出的文件格式，excel pdf
+    type: "pdf"
   permissions:
     verify:
       list:

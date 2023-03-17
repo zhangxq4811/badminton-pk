@@ -117,12 +117,10 @@ public class PlayerController {
      * @return
      */
     @RequestMapping("/exportResult")
-    @ResponseBody
-    public ResultVO exportResult(HttpServletResponse response) {
+    public void exportResult(HttpServletResponse response) {
         GroupingResult lastGroupingResult = groupingService.getLastGroupingResult();
         // 将分组数据导出为PDF
         groupingService.exportPDF(lastGroupingResult, response);
-        return ResultVO.success();
     }
 
     /**
