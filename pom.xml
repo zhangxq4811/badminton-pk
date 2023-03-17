@@ -48,11 +48,19 @@
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.aspose/aspose-cells -->
+<!--        <dependency>-->
+<!--            <groupId>com.aspose</groupId>-->
+<!--            <artifactId>aspose-cells</artifactId>-->
+<!--            <version>8.5.2</version>-->
+<!--        </dependency>-->
         <dependency>
-            <groupId>com.aspose</groupId>
+            <groupId>aspose-cells</groupId>
             <artifactId>aspose-cells</artifactId>
             <version>8.5.2</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/libs/aspose-cells-8.5.2.jar</systemPath>
         </dependency>
+
 
 
         <dependency>
